@@ -16,7 +16,11 @@ Este projeto foi desenvolvido com foco em aprendizado de backend, arquitetura em
 - Confirmar pagamento
 - Atualizar status do pagamento
 - Criar usuário automaticamente após pagamento
-- Gerar senha padrão baseada no CPF
+- Gerar senha temporária aleatória
+- Criptografar senha com BCrypt
+- Login com validação de CPF e senha
+- Bloquear primeiro acesso até troca de senha
+- Trocar senha temporária por senha definitiva
 
 ---
 
@@ -26,10 +30,14 @@ Este projeto foi desenvolvido com foco em aprendizado de backend, arquitetura em
 - Após confirmação, o status muda para **PAGO**
 - Ao confirmar pagamento:
   - O sistema verifica se já existe um usuário com o CPF
-  - Caso não exista, cria automaticamente
-- A senha padrão do usuário é composta pelos **4 últimos dígitos do CPF**
-- O usuário deve alterar a senha posteriormente
-
+  - Caso não exista, cria automaticamente um novo usuário
+  - É gerada uma **senha temporária aleatória**
+  - A senha é **criptografada com BCrypt** antes de ser salva no banco
+- No primeiro acesso:
+  - O usuário pode realizar login com a senha temporária
+  - O sistema exige a **troca obrigatória da senha**
+- Após a troca:
+  - O usuário passa a acessar normalmente com a nova senha
 ---
 
 ## 🏗️ Arquitetura
