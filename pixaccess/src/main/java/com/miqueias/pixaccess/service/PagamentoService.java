@@ -5,17 +5,21 @@ import com.miqueias.pixaccess.entity.Usuario;
 import com.miqueias.pixaccess.repository.PagamentoRepository;
 import com.miqueias.pixaccess.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 public class PagamentoService {
 
     private final PagamentoRepository pagamentoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public PagamentoService(PagamentoRepository pagamentoRepository,
-                            UsuarioRepository usuarioRepository) {
+                            UsuarioRepository usuarioRepository,
+                            PasswordEncoder passwordEncoder) {
         this.pagamentoRepository = pagamentoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public Pagamento criarPagamento(String cpf, String nome, Double valor) {
@@ -55,13 +59,21 @@ public class PagamentoService {
             usuario.setCpf(pagamento.getCpf());
             usuario.setNome(pagamento.getNome());
 
-            usuario.setSenha(pagamento.getCpf()
-                    .substring(pagamento.getCpf()
-                            .length() - 4));
+            // Gera uma senha temporária aleatória para o primeiro acesso
+            String senhaTemporaria = gerarSenhaTemporaria();
+            usuario.setSenha(passwordEncoder.encode(senhaTemporaria));
+
+            System.out.println("Senha temporária do usuário: " + senhaTemporaria);
 
             usuario.setSenhaAlterada(false);
 
             usuarioRepository.save(usuario);
         }
+    }
+
+    private String gerarSenhaTemporaria() {
+        return "Pix@" + java.util.UUID.randomUUID()
+                .toString()
+                .substring(0, 8);
     }
 }
