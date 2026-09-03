@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>PixAccess - Painel de Teste</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #0f1115;
+    color: #e6e6e6;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #9aa0a6; margin-bottom: 24px; font-size: 13px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: #1a1d24;
+    border: 1px solid #2a2e37;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card h2 {
+    font-size: 15px;
+    margin: 0 0 12px 0;
+    color: #8ab4f8;
+  }
+  label { display: block; font-size: 12px; color: #9aa0a6; margin: 8px 0 4px; }
+  input {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #2a2e37;
+    background: #0f1115;
+    color: #e6e6e6;
+    font-size: 13px;
+  }
+  button {
+    margin-top: 12px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #8ab4f8;
+    color: #0f1115;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    margin-right: 6px;
+  }
+  button:hover { background: #a6c7fb; }
+  button.secondary { background: #2a2e37; color: #e6e6e6; }
+  button.secondary:hover { background: #363b46; }
+  .token-status {
+    margin-top: 10px;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: #0f1115;
+    border: 1px solid #2a2e37;
+    word-break: break-all;
+  }
+  .token-status.ok { border-color: #2e7d32; color: #81c784; }
+  .response {
+    grid-column: 1 / -1;
+  }
+  pre {
+    background: #0f1115;
+    border: 1px solid #2a2e37;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    max-height: 300px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .status-2xx { background: #1b3a1f; color: #81c784; }
+  .status-4xx { background: #3a2a1b; color: #ffb74d; }
+  .status-5xx { background: #3a1b1b; color: #e57373; }
+  .status-err { background: #3a1b1b; color: #e57373; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+
+<h1>PixAccess — Painel de Teste</h1>
+<div class="sub">Interface simples pra testar a API sem precisar de curl ou Postman. Roda tudo na mesma origem (localhost:8080), sem CORS.</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h2>1. Cadastrar usuário</h2>
+    <label>Nome</label>
+    <input id="cad-nome" value="Joao Teste">
+    <label>CPF</label>
+    <input id="cad-cpf" value="12345678901">
+    <label>Senha</label>
+    <input id="cad-senha" type="password" value="senha123">
+    <button onclick="cadastrar()">Cadastrar</button>
+  </div>
+
+  <div class="card">
+    <h2>2. Login</h2>
+    <label>CPF</label>
+    <input id="login-cpf" value="12345678901">
+    <label>Senha</label>
+    <input id="login-senha" type="password" value="senha123">
+    <button onclick="login()">Login</button>
+    <div id="token-box" class="token-status">Nenhum token ainda.</div>
+  </div>
+
+  <div class="card">
+    <h2>3. Criar pagamento</h2>
+    <label>CPF pagador</label>
+    <input id="pag-cpf" value="12345678901">
+    <label>Valor</label>
+    <input id="pag-valor" value="150.00">
+    <label>Chave PIX</label>
+    <input id="pag-chave" value="email@exemplo.com">
+    <label>Descrição</label>
+    <input id="pag-desc" value="Teste pelo painel">
+    <button onclick="criarPagamento()">Criar pagamento</button>
+  </div>
+
+  <div class="card">
+    <h2>4. Consultar / alterar pagamento</h2>
+    <label>ID do pagamento</label>
+    <input id="pag-id" value="1">
+    <div class="row2">
+      <button onclick="buscarPorId()">Buscar por ID</button>
+      <button onclick="confirmarPagamento()">Confirmar</button>
+      <button onclick="cancelarPagamento()" class="secondary">Cancelar</button>
+      <button onclick="listarPorCpf()" class="secondary">Listar por CPF pagador</button>
+    </div>
+  </div>
+
+  <div class="card response">
+    <h2>Resposta</h2>
+    <div id="status-badge"></div>
+    <pre id="resposta">Nenhuma chamada feita ainda.</pre>
+  </div>
+
+</div>
+
+<script>
+let token = localStorage.getItem('pixaccess_token') || null;
+atualizarTokenBox();
+
+function atualizarTokenBox() {
+  const box = document.getElementById('token-box');
+  if (token) {
+    box.textContent = 'Token ativo: ' + token.substring(0, 40) + '...';
+    box.classList.add('ok');
+  } else {
+    box.textContent = 'Nenhum token ainda.';
+    box.classList.remove('ok');
+  }
+}
+
+function mostrarResposta(status, body) {
+  const badge = document.getElementById('status-badge');
+  const pre = document.getElementById('resposta');
+  let cls = 'status-2xx';
+  if (status === 'ERRO') cls = 'status-err';
+  else if (status >= 500) cls = 'status-5xx';
+  else if (status >= 400) cls = 'status-4xx';
+  badge.innerHTML = '<span class="status-badge ' + cls + '">HTTP ' + status + '</span>';
+  pre.textContent = typeof body === 'string' ? body : JSON.stringify(body, null, 2);
+}
+
+async function chamar(path, options) {
+  try {
+    const resp = await fetch(path, options);
+    let body;
+    const text = await resp.text();
+    try { body = text ? JSON.parse(text) : {}; } catch (e) { body = text; }
+    mostrarResposta(resp.status, body);
+    return { status: resp.status, body };
+  } catch (e) {
+    mostrarResposta('ERRO', String(e));
+    return { status: 'ERRO', body: null };
+  }
+}
+
+async function cadastrar() {
+  await chamar('/usuarios/cadastrar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nome: document.getElementById('cad-nome').value,
+      cpf: document.getElementById('cad-cpf').value,
+      senha: document.getElementById('cad-senha').value
+    })
+  });
+}
+
+async function login() {
+  const r = await chamar('/usuarios/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      cpf: document.getElementById('login-cpf').value,
+      senha: document.getElementById('login-senha').value
+    })
+  });
+  if (r.status === 200 && r.body && r.body.token) {
+    token = r.body.token;
+    localStorage.setItem('pixaccess_token', token);
+    atualizarTokenBox();
+  }
+}
+
+function authHeaders() {
+  return token ? { 'Authorization': 'Bearer ' + token } : {};
+}
+
+async function criarPagamento() {
+  await chamar('/pagamentos', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+    body: JSON.stringify({
+      cpfPagador: document.getElementById('pag-cpf').value,
+      valor: parseFloat(document.getElementById('pag-valor').value),
+      chavePix: document.getElementById('pag-chave').value,
+      descricao: document.getElementById('pag-desc').value
+    })
+  });
+}
+
+async function buscarPorId() {
+  const id = document.getElementById('pag-id').value;
+  await chamar('/pagamentos/' + id, { headers: authHeaders() });
+}
+
+async function confirmarPagamento() {
+  const id = document.getElementById('pag-id').value;
+  await chamar('/pagamentos/' + id + '/confirmar', { method: 'PATCH', headers: authHeaders() });
+}
+
+async function cancelarPagamento() {
+  const id = document.getElementById('pag-id').value;
+  await chamar('/pagamentos/' + id + '/cancelar', { method: 'PATCH', headers: authHeaders() });
+}
+
+async function listarPorCpf() {
+  const cpf = document.getElementById('pag-cpf').value;
+  await chamar('/pagamentos/cpf/' + cpf, { headers: authHeaders() });
+}
+</script>
+
+</body>
+</html>

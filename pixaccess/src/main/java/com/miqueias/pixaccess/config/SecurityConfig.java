@@ -27,6 +27,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
                 .requestMatchers(HttpMethod.POST, "/usuarios/cadastrar").permitAll()
                 .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
                 .anyRequest().authenticated()
