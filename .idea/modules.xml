@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/pixaccess.iml" filepath="$PROJECT_DIR$/.idea/pixaccess.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/api-pixaccess.iml" filepath="$PROJECT_DIR$/.idea/api-pixaccess.iml" />
+      <module fileurl="file://$PROJECT_DIR$/pixaccess/pixaccess.iml" filepath="$PROJECT_DIR$/pixaccess/pixaccess.iml" />
     </modules>
   </component>
 </project>

@@ -1,28 +1,39 @@
 package com.miqueias.pixaccess.controller;
 
 import com.miqueias.pixaccess.dto.LoginRequest;
+import com.miqueias.pixaccess.dto.LoginResponse;
 import com.miqueias.pixaccess.dto.TrocarSenhaRequest;
+import com.miqueias.pixaccess.entity.Usuario;
 import com.miqueias.pixaccess.service.UsuarioService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
 
-    private final UsuarioService usuarioService;
+    @Autowired
+    private UsuarioService usuarioService;
 
-    public UsuarioController(UsuarioService usuarioService) {
-        this.usuarioService = usuarioService;
+    @PostMapping("/cadastrar")
+    public ResponseEntity<Usuario> cadastrar(@Valid @RequestBody Usuario usuario) {
+        Usuario salvo = usuarioService.cadastrar(usuario);
+        salvo.setSenha(null); // nunca retornar a senha
+        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody LoginRequest request) {
-        return usuarioService.login(request);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = usuarioService.login(request);
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/trocar-senha")
-    public String trocarSenha(@RequestBody TrocarSenhaRequest request) {
-        return  usuarioService.trocarSenha(request);
+    @PutMapping("/trocar-senha")
+    public ResponseEntity<Void> trocarSenha(@Valid @RequestBody TrocarSenhaRequest request) {
+        usuarioService.trocarSenha(request);
+        return ResponseEntity.noContent().build();
     }
-
 }

@@ -1,79 +1,89 @@
 package com.miqueias.pixaccess.service;
 
+import com.miqueias.pixaccess.dto.CriarPagamentoRequest;
+import com.miqueias.pixaccess.dto.PagamentoResponse;
 import com.miqueias.pixaccess.entity.Pagamento;
-import com.miqueias.pixaccess.entity.Usuario;
 import com.miqueias.pixaccess.repository.PagamentoRepository;
-import com.miqueias.pixaccess.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class PagamentoService {
 
-    private final PagamentoRepository pagamentoRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final PasswordEncoder passwordEncoder;
+    private static final Logger logger = LoggerFactory.getLogger(PagamentoService.class);
 
-    public PagamentoService(PagamentoRepository pagamentoRepository,
-                            UsuarioRepository usuarioRepository,
-                            PasswordEncoder passwordEncoder) {
-        this.pagamentoRepository = pagamentoRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+    @Autowired
+    private PagamentoRepository pagamentoRepository;
 
-    public Pagamento criarPagamento(String cpf, String nome, Double valor) {
-
+    public PagamentoResponse criarPagamento(CriarPagamentoRequest request) {
         Pagamento pagamento = new Pagamento();
-
-        pagamento.setCpf(cpf);
-        pagamento.setNome(nome);
-        pagamento.setValor(valor);
+        pagamento.setCpfPagador(request.getCpfPagador());
+        pagamento.setValor(request.getValor());
+        pagamento.setChavePix(request.getChavePix());
+        pagamento.setDescricao(request.getDescricao());
         pagamento.setStatus("PENDENTE");
+        pagamento.setDataCriacao(LocalDateTime.now());
 
-        return pagamentoRepository.save(pagamento);
+        Pagamento salvo = pagamentoRepository.save(pagamento);
+        logger.info("Pagamento criado com ID: {}", salvo.getId());
+        return toResponse(salvo);
     }
 
-    public void confirmarPagamento(Long id) {
-
+    public PagamentoResponse buscarPorId(Long id) {
         Pagamento pagamento = pagamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado"));
-
-        pagamento.setStatus("PAGO");
-
-        pagamentoRepository.save(pagamento);
-
-        criarUsuario(pagamento);
+                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado: " + id));
+        return toResponse(pagamento);
     }
 
-    private void criarUsuario(Pagamento pagamento) {
+    public List<PagamentoResponse> listarPorCpf(String cpfPagador) {
+        return pagamentoRepository.findByCpfPagador(cpfPagador)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
 
-        boolean existe = usuarioRepository
-                .findByCpf(pagamento.getCpf())
-                .isPresent();
+    public PagamentoResponse confirmarPagamento(Long id) {
+        Pagamento pagamento = pagamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado: " + id));
 
-        if (!existe) {
-
-            Usuario usuario = new Usuario();
-
-            usuario.setCpf(pagamento.getCpf());
-            usuario.setNome(pagamento.getNome());
-
-            // Gera uma senha temporária aleatória para o primeiro acesso
-            String senhaTemporaria = gerarSenhaTemporaria();
-            usuario.setSenha(passwordEncoder.encode(senhaTemporaria));
-
-            System.out.println("Senha temporária do usuário: " + senhaTemporaria);
-
-            usuario.setSenhaAlterada(false);
-
-            usuarioRepository.save(usuario);
+        if (!"PENDENTE".equals(pagamento.getStatus())) {
+            throw new RuntimeException("Pagamento não está com status PENDENTE");
         }
+
+        pagamento.setStatus("CONFIRMADO");
+        Pagamento atualizado = pagamentoRepository.save(pagamento);
+        logger.info("Pagamento ID {} confirmado", id);
+        return toResponse(atualizado);
     }
 
-    private String gerarSenhaTemporaria() {
-        return "Pix@" + java.util.UUID.randomUUID()
-                .toString()
-                .substring(0, 8);
+    public PagamentoResponse cancelarPagamento(Long id) {
+        Pagamento pagamento = pagamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado: " + id));
+
+        if ("CONFIRMADO".equals(pagamento.getStatus())) {
+            throw new RuntimeException("Não é possível cancelar um pagamento já confirmado");
+        }
+
+        pagamento.setStatus("CANCELADO");
+        Pagamento atualizado = pagamentoRepository.save(pagamento);
+        logger.info("Pagamento ID {} cancelado", id);
+        return toResponse(atualizado);
+    }
+
+    private PagamentoResponse toResponse(Pagamento p) {
+        PagamentoResponse response = new PagamentoResponse();
+        response.setId(p.getId());
+        response.setCpfPagador(p.getCpfPagador());
+        response.setValor(p.getValor());
+        response.setChavePix(p.getChavePix());
+        response.setDescricao(p.getDescricao());
+        response.setStatus(p.getStatus());
+        response.setDataCriacao(p.getDataCriacao());
+        return response;
     }
 }

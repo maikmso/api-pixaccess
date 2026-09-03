@@ -1,61 +1,135 @@
-# 💳 API PixAccess 
+# PixAccess API
 
-## 📌 Sobre o projeto
+API REST para gerenciamento de pagamentos PIX, desenvolvida com Spring Boot, Spring Security (JWT) e PostgreSQL.
 
-O PixAccess é uma API desenvolvida em Java com Spring Boot que simula um fluxo de pagamento via PIX.
-
-O sistema permite que um cliente realize um pagamento e, após a confirmação, um usuário seja criado automaticamente com base nos dados fornecidos.
-
-Este projeto foi desenvolvido com foco em aprendizado de backend, arquitetura em camadas e integração com banco de dados.
-
----
-
-## 🚀 Funcionalidades
-
-- Criar pagamento via API
-- Confirmar pagamento
-- Atualizar status do pagamento
-- Criar usuário automaticamente após pagamento
-- Gerar senha temporária aleatória
-- Criptografar senha com BCrypt
-- Login com validação de CPF e senha
-- Bloquear primeiro acesso até troca de senha
-- Trocar senha temporária por senha definitiva
-
----
-
-## 🧠 Regras de negócio
-
-- Todo pagamento inicia com status **PENDENTE**
-- Após confirmação, o status muda para **PAGO**
-- Ao confirmar pagamento:
-  - O sistema verifica se já existe um usuário com o CPF
-  - Caso não exista, cria automaticamente um novo usuário
-  - É gerada uma **senha temporária aleatória**
-  - A senha é **criptografada com BCrypt** antes de ser salva no banco
-- No primeiro acesso:
-  - O usuário pode realizar login com a senha temporária
-  - O sistema exige a **troca obrigatória da senha**
-- Após a troca:
-  - O usuário passa a acessar normalmente com a nova senha
----
-
-## 🏗️ Arquitetura
-
-O projeto segue o padrão em camadas:
-
-- **Controller**: recebe requisições HTTP
-- **Service**: contém a lógica de negócio
-- **Repository**: faz acesso ao banco
-- **Database**: armazenamento dos dados
-
----
-
-## 🛠️ Tecnologias utilizadas
+## Tecnologias
 
 - Java 21
-- Spring Boot
+- Spring Boot 4.x
+- Spring Security + JWT (JJWT 0.12)
 - Spring Data JPA
 - PostgreSQL
+- Lombok
 - Maven
-- Postman
+
+## Pré-requisitos
+
+- JDK 21+
+- PostgreSQL rodando localmente
+- Maven 3.8+
+
+## Configuração
+
+1. Crie o banco de dados no PostgreSQL:
+```sql
+CREATE DATABASE pixaccess;
+```
+
+2. Copie o arquivo de configuração de exemplo:
+```bash
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+```
+
+3. Edite `application.properties` com suas credenciais:
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/pixaccess
+spring.datasource.username=seu_usuario
+spring.datasource.password=sua_senha
+jwt.secret=sua_chave_secreta_com_pelo_menos_32_caracteres
+```
+
+## Como rodar
+
+```bash
+./mvnw spring-boot:run
+```
+
+A API estará disponível em `http://localhost:8080`.
+
+## Endpoints
+
+### Usuários
+
+| Método | Rota                       | Auth | Descrição           |
+|--------|----------------------------|------|---------------------|
+| POST   | /usuarios/cadastrar        | Não  | Cadastrar usuário   |
+| POST   | /usuarios/login            | Não  | Fazer login (JWT)   |
+| PUT    | /usuarios/trocar-senha     | Sim  | Trocar senha        |
+
+#### Cadastrar usuário
+```json
+POST /usuarios/cadastrar
+{
+  "nome": "João Silva",
+  "cpf": "12345678901",
+  "senha": "minhasenha"
+}
+```
+
+#### Login
+```json
+POST /usuarios/login
+{
+  "cpf": "12345678901",
+  "senha": "minhasenha"
+}
+```
+Resposta:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "tipo": "Bearer",
+  "cpf": "12345678901"
+}
+```
+
+### Pagamentos
+
+> Todos os endpoints de pagamento exigem o header:
+> `Authorization: Bearer <token>`
+
+| Método | Rota                          | Descrição                    |
+|--------|-------------------------------|------------------------------|
+| POST   | /pagamentos                   | Criar pagamento              |
+| GET    | /pagamentos/{id}              | Buscar pagamento por ID      |
+| GET    | /pagamentos/cpf/{cpf}         | Listar pagamentos por CPF    |
+| PATCH  | /pagamentos/{id}/confirmar    | Confirmar pagamento          |
+| PATCH  | /pagamentos/{id}/cancelar     | Cancelar pagamento           |
+
+#### Criar pagamento
+```json
+POST /pagamentos
+Authorization: Bearer <token>
+{
+  "cpfPagador": "12345678901",
+  "valor": 150.00,
+  "chavePix": "email@exemplo.com",
+  "descricao": "Pagamento referente ao pedido #123"
+}
+```
+
+#### Status possíveis
+- `PENDENTE` — criado, aguardando confirmação
+- `CONFIRMADO` — pagamento confirmado
+- `CANCELADO` — pagamento cancelado
+
+## Tratamento de erros
+
+Todos os erros retornam JSON padronizado:
+```json
+{
+  "status": 400,
+  "mensagem": "CPF já cadastrado",
+  "timestamp": "2026-08-20T10:00:00"
+}
+```
+
+## Rodando os testes
+
+```bash
+./mvnw test
+```
+
+## Autor
+
+Miquéias Santos — [GitHub](https://github.com/miqueiassantosoliveira700)
