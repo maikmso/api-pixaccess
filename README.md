@@ -16,21 +16,26 @@ API REST para gerenciamento de pagamentos PIX, desenvolvida com Spring Boot, Spr
 
 - JDK 21+
 - PostgreSQL rodando localmente
-- Maven 3.8+
+- Maven 3.8+ (ou use o mvnw incluído no projeto)
 
 ## Configuração
 
-1. Crie o banco de dados no PostgreSQL:
+1. Entre na pasta do projeto:
+```bash
+cd pixaccess
+```
+
+2. Crie o banco de dados no PostgreSQL:
 ```sql
 CREATE DATABASE pixaccess;
 ```
 
-2. Copie o arquivo de configuração de exemplo:
+3. Copie o arquivo de configuração de exemplo:
 ```bash
 cp src/main/resources/application.properties.example src/main/resources/application.properties
 ```
 
-3. Edite `application.properties` com suas credenciais:
+4. Edite application.properties com suas credenciais:
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/pixaccess
 spring.datasource.username=seu_usuario
@@ -40,11 +45,16 @@ jwt.secret=sua_chave_secreta_com_pelo_menos_32_caracteres
 
 ## Como rodar
 
+Dentro da pasta pixaccess:
 ```bash
 ./mvnw spring-boot:run
 ```
 
-A API estará disponível em `http://localhost:8080`.
+A API estará disponível em http://localhost:8080.
+
+## Painel de teste (sem Postman/curl)
+
+O projeto inclui uma interface web simples em http://localhost:8080/, servida automaticamente pelo Spring Boot. Ela permite cadastrar usuário, fazer login, criar pagamento e consultar, confirmar ou cancelar pagamentos direto pelo navegador, sem precisar montar requisições manualmente. O token JWT do login fica guardado e é reaproveitado nas chamadas seguintes.
 
 ## Endpoints
 
@@ -85,8 +95,8 @@ Resposta:
 
 ### Pagamentos
 
-> Todos os endpoints de pagamento exigem o header:
-> `Authorization: Bearer <token>`
+Todos os endpoints de pagamento exigem o header:
+Authorization: Bearer <token>
 
 | Método | Rota                          | Descrição                    |
 |--------|-------------------------------|------------------------------|
@@ -109,9 +119,9 @@ Authorization: Bearer <token>
 ```
 
 #### Status possíveis
-- `PENDENTE` — criado, aguardando confirmação
-- `CONFIRMADO` — pagamento confirmado
-- `CANCELADO` — pagamento cancelado
+- PENDENTE: criado, aguardando confirmação
+- CONFIRMADO: pagamento confirmado
+- CANCELADO: pagamento cancelado
 
 ## Tratamento de erros
 
@@ -126,10 +136,11 @@ Todos os erros retornam JSON padronizado:
 
 ## Rodando os testes
 
+Dentro da pasta pixaccess:
 ```bash
 ./mvnw test
 ```
 
 ## Autor
 
-Miquéias Santos — [GitHub](https://github.com/miqueiassantosoliveira700)
+Miquéias Santos ([GitHub](https://github.com/maikmso))
